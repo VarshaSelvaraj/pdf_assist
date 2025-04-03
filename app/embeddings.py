@@ -14,10 +14,7 @@ model = SentenceTransformer("all-MiniLM-L6-v2")
 
 def store_text_in_supabase(text, file_name, file_url):
     """Encodes and stores text embeddings in Supabase along with file details."""
-  
 
-    # Clear previous chunks
-    supabase.table("chunks").delete().neq("sentence", "").execute()
     sentences = text.split(". ")
     embeddings = model.encode(sentences)
 
@@ -32,6 +29,7 @@ def store_text_in_supabase(text, file_name, file_url):
     ]
 
     supabase.table("chunks").insert(data).execute()
+
 
 def get_relevant_text(query):
     """Retrieves relevant text snippets along with file links."""

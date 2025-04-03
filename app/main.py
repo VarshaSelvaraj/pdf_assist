@@ -23,6 +23,29 @@ st.title("📄 PDF & Web Content Q&A App")
 option = st.radio("Select input type:", ("Upload PDFs", "Enter Website URL"))
 os.makedirs(TEMP_FOLDER, exist_ok=True)
 
+def empty_supabase_bucket():
+    """Deletes all files from the 'pdfs' bucket in Supabase Storage."""
+    try:
+        # 🔹 List all files in the 'pdfs' bucket
+        files = supabase.storage.from_("pdf").list()
+        
+        if files:
+            file_paths = [f["name"] for f in files]
+
+            # 🔥 Delete all files from storage
+            res = supabase.storage.from_("pdf").remove(file_paths)
+
+            if hasattr(res, "error") and res.error:
+                print(f"⚠️ Error deleting files: {res.error}")
+            else:
+                print(f"✅ Deleted {len(file_paths)} files from Supabase Storage.")
+        else:
+            print("ℹ️ No files to delete in Supabase Storage.")
+
+    except Exception as e:
+        print(f"⚠️ Error while deleting files: {e}")
+
+
 def upload_to_supabase(uploaded_file):
     """Uploads a PDF file to Supabase Storage and returns the public URL."""
     file_name = uploaded_file.name  
@@ -56,24 +79,30 @@ if option == "Upload PDFs":
 
     if uploaded_files and st.button("📤 Process PDFs"):
         with st.spinner("Processing PDFs..."):
+
+            # ✅ Delete previous embeddings at the start of a new batch upload
+            empty_supabase_bucket()
+            supabase.table("chunks").delete().neq("sentence", "").execute()
+            supabase.table("pdf_files").delete().neq("file_name", "").execute()
             for uploaded_file in uploaded_files:
                 pdf_text = extract_text_from_pdf(uploaded_file)
                 file_url = upload_to_supabase(uploaded_file)
                 st.markdown(f"✅ Uploaded: [{uploaded_file.name}]({file_url})", unsafe_allow_html=True)
-        
+
                 if file_url:
                     # Store file metadata in `pdf_files` table
                     supabase.table("pdf_files").insert({"file_name": uploaded_file.name, "file_url": file_url}).execute()
 
-                    # Store text with reference to file
+                    # ✅ Store embeddings for each PDF
                     store_text_in_supabase(pdf_text, uploaded_file.name, file_url)
 
         st.success("✅ PDFs uploaded and processed successfully!")
 
+
 # 🌐 Web Scraping Section
 elif option == "Enter Website URL":
     domain_url = st.text_input("Enter website URL:")
-
+    supabase.table("chunks").delete().neq("sentence", "").execute()
     if domain_url and st.button("🔍 Scrape Website"):
         with st.spinner("Scraping website..."):
             relevant_pages = get_relevant_links(domain_url)
