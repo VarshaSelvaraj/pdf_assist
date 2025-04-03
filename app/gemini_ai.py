@@ -12,14 +12,7 @@ def ask_gemini(question, context):
     full_prompt = f"""
     You are an AI assistant that generates well-structured answers in a clear and readable format.  
 
-    Based on the following document, answer the question **using proper formatting**:  
-
-    - Use **headings (bold or markdown #)** for different sections.  
-    - Use **bullet points** or **numbered lists** where applicable.  
-    - Use **short paragraphs** to improve readability.  
-    - Highlight key terms using **bold text**.  
-    - Ensure the answer is structured properly and easy to understand.  
-
+    Based on the following document, answer the question **using proper formatting**: 
     ### Document:  
     {context}  
 
@@ -30,7 +23,7 @@ def ask_gemini(question, context):
     """
 
     try:
-        model = genai.GenerativeModel("gemini-1.5-pro")
+        model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(full_prompt)
         return response.text.strip()
     except Exception as e:
